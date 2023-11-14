@@ -3,6 +3,14 @@ from typing import List, Tuple
 import cv2
 import numpy as np
 
+from utils import get_frame
+
+matrix_path = 'proj_matrix.npy'
+
+# Save NumPy array to file
+aspect = 1.58
+width = 1280
+height = int(width/aspect)
 
 def show_scaled_image(image, zoom_level=1):
     # Scale the image
@@ -20,9 +28,11 @@ def get_calibration_points(image: np.ndarray) -> List[Tuple[int, int]]:
     """
     points = []
     zoom_level = 1
+    destroy = False
 
     def get_points(event, x, y, flags, _):
-        nonlocal points, zoom_level, image
+        nonlocal points, zoom_level, image, destroy
+
 
         if event == cv2.EVENT_LBUTTONDOWN:
             # Adjust coordinates based on the zoom level
@@ -35,7 +45,7 @@ def get_calibration_points(image: np.ndarray) -> List[Tuple[int, int]]:
 
             # If 4 points have been clicked, perform the transformation
             if len(points) == 4:
-                cv2.destroyAllWindows()
+                destroy = True
 
         elif event == cv2.EVENT_MOUSEWHEEL:
             # Use bitwise operations to check the scroll direction
@@ -49,8 +59,15 @@ def get_calibration_points(image: np.ndarray) -> List[Tuple[int, int]]:
     cv2.namedWindow('Image')
     cv2.setMouseCallback('Image', get_points)
 
-    show_scaled_image(image)
-    cv2.waitKey(0)
+    # show_scaled_image(image)
+    while True:
+        if destroy:
+            cv2.destroyWindow("Image")
+            break
+        key = cv2.waitKey(0)
+        if key == 27:
+            cv2.destroyWindow("Image")
+            break
 
     return points
 
@@ -62,7 +79,6 @@ def get_transformation_matrix(points: List[Tuple[int, int]]) -> np.ndarray:
     :return:
     """
     # Define points for the destination
-    width, height = 800, 600  # Example dimensions, adjust as necessary
     dst_points = np.float32([[0, 0], [width, 0], [width, height], [0, height]])
 
     # Get the transformation matrix
@@ -76,14 +92,20 @@ def transform_image(image: np.ndarray, matrix: np.ndarray) -> np.ndarray:
     :param matrix: np.ndarray
     :return: Transformed image as np.ndarray
     """
-    width, height = 800, 600  # Example dimensions, adjust as necessary
     return cv2.warpPerspective(image, matrix, (width, height))
 
 
 if __name__ == '__main__':
-    img = cv2.imread('test.jpg')
+    # img = cv2.imread('./images/board.jpg')
+    frame_gen = get_frame()
+    img = next(frame_gen)
     p = get_calibration_points(img)
     m = get_transformation_matrix(p)
-    img = transform_image(img, m)
-    cv2.imshow('Image', img)
-    cv2.waitKey(0)
+    np.save(matrix_path, m)
+
+    # img = transform_image(img, m)
+    # cv2.imwrite('images/test.png', img)
+    # while True:
+    #     key = cv2.waitKey(0)
+    #     if key == 27:
+    #         break
