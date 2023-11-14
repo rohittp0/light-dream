@@ -1,13 +1,13 @@
 import cv2
 
 
-def get_frame():
+def get_frame(cam=0):
     """
     Reads a frame from the camera using OpenCV
     :return: Frame
     """
 
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(cam)
 
     while True:
         # Read a frame from the camera

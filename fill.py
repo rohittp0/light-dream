@@ -2,10 +2,10 @@ import cv2
 import numpy as np
 
 
-def get_average_color(contour, img):
-    mask = np.zeros(img.shape[:2], dtype=np.uint8)
+def get_average_color(contour, image):
+    mask = np.zeros(image.shape[:2], dtype=np.uint8)
     cv2.drawContours(mask, [contour], -1, 255, -1)
-    mean = cv2.mean(img, mask=mask)
+    mean = cv2.mean(image, mask=mask)
     return mean[0:3]
 
 
@@ -57,5 +57,5 @@ def get_fill_overlay(image: np.ndarray) -> np.ndarray:
 
 if __name__ == '__main__':
     img = cv2.imread('test/adjusted.jpg')
-    overlay = get_fill_overlay(img)
-    cv2.imwrite('test/overlay.jpg', overlay)
+    over = get_fill_overlay(img)
+    cv2.imwrite('test/overlay.jpg', over)
