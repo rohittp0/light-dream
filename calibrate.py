@@ -81,9 +81,9 @@ def transform_image(image: np.ndarray, matrix: np.ndarray) -> np.ndarray:
 
 
 if __name__ == '__main__':
-    img = cv2.imread('test.jpg')
+    img = cv2.imread('test/test.jpg')
     p = get_calibration_points(img)
     m = get_transformation_matrix(p)
     img = transform_image(img, m)
-    cv2.imshow('Image', img)
-    cv2.waitKey(0)
+
+    cv2.imwrite('test/adjusted.jpg', img)
