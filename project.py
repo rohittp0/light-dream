@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 
 from calibrate import matrix_path, transform_image
+from fill import get_fill_overlay
 from utils import get_frame
 
 m = np.load(matrix_path)
@@ -19,7 +20,9 @@ cv2.resizeWindow('Image', img.shape[1], img.shape[0])
 
 while True:
     img = transform_image(next(frame_gen), m)
-    cv2.imshow('Image', img)
+    overlay = get_fill_overlay(img)
+
+    cv2.imshow('Image', overlay)
     if cv2.waitKey(1) == 27:
         break
 

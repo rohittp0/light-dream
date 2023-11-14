@@ -40,7 +40,7 @@ def find_and_fill_contours(thresh, image):
             continue
         average_color = get_average_color(contour, image)
         color = closest_color(average_color)
-        cv2.drawContours(overlay, [contour], -1, color, -1)
+        cv2.drawContours(overlay, [contour], -1, color, 2)
     return overlay
 
 
@@ -56,6 +56,6 @@ def get_fill_overlay(image: np.ndarray) -> np.ndarray:
 
 
 if __name__ == '__main__':
-    img = cv2.imread('test/adjusted.jpg')
+    img = cv2.imread('images/whiteboard.jpg')
     overlay = get_fill_overlay(img)
-    cv2.imwrite('test/overlay.jpg', overlay)
+    cv2.imwrite('images/overlay.jpg', overlay)
