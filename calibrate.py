@@ -1,12 +1,9 @@
-import sys
 from typing import List, Tuple
 
 import cv2
 import numpy as np
-from PyQt5.QtWidgets import QApplication
 
-from app import VideoApp
-from utils import get_frame
+width, height = 1500, 800  # Example dimensions, adjust as necessary
 
 
 def show_scaled_image(image, zoom_level=1):
@@ -17,67 +14,66 @@ def show_scaled_image(image, zoom_level=1):
     cv2.imshow('Image', image)
 
 
-def get_calibration_points(window: VideoApp) -> List[Tuple[int, int]]:
+def get_calibration_points(image: np.ndarray) -> List[Tuple[int, int]]:
     """
-    Get the calibration points from the image.
-    :param window: VideoApp
+    Get the calibration points from the user.
+    :param image: np.ndarray
     :return: List of 4 points.
     """
-    # Create a green image of screen size
-    image = np.zeros((1200, 800, 3), dtype=np.uint8)
-    image[:] = (0, 255, 0)  # (B, G, R)
+    points = []
+    zoom_level = 1
 
-    # Display the image in an OpenCV window
-    window.display_frame(image)
-    image = next(get_frame(cam=1))
+    def get_points(event, x, y, flags, _):
+        nonlocal points, zoom_level, image
 
-    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        if event == cv2.EVENT_LBUTTONDOWN:
+            # Adjust coordinates based on the zoom level
+            adjusted_x = int(x / zoom_level)
+            adjusted_y = int(y / zoom_level)
+            points.append((adjusted_x, adjusted_y))
 
-    lower_green = np.array([35, 100, 100])
-    upper_green = np.array([85, 255, 255])
+            # Draw a circle where the user clicked
+            cv2.circle(image, (adjusted_x, adjusted_y), 5, (255, 0, 0), -1)
 
-    mask = cv2.inRange(hsv, lower_green, upper_green)
-    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            # If 4 points have been clicked, perform the transformation
+            if len(points) == 4:
+                cv2.destroyAllWindows()
 
-    shape_contour = max(contours, key=cv2.contourArea)
+        elif event == cv2.EVENT_MOUSEWHEEL:
+            # Use bitwise operations to check the scroll direction
+            if flags > 0:
+                zoom_level *= 1.25
+            else:
+                zoom_level /= 1.25
 
-    epsilon = 0.02 * cv2.arcLength(shape_contour, True)
-    approx = cv2.approxPolyDP(shape_contour, epsilon, True)
+        show_scaled_image(image, zoom_level)
 
-    return [tuple(point[0]) for point in approx]
+    cv2.namedWindow("Image", cv2.WND_PROP_FULLSCREEN)
+    cv2.setWindowProperty("Image", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_NORMAL)
+    cv2.setMouseCallback('Image', get_points)
+
+    show_scaled_image(image)
+    cv2.waitKey(0)
+
+    return points
 
 
-def get_transformation_matrix(points: List[Tuple[int, int]]) -> Tuple[np.ndarray, int, int]:
+def get_transformation_matrix(points: List[Tuple[int, int]]) -> np.ndarray:
     """
     Get the transformation matrix for the given points.
-    :param points: List of 4 points forming a quadrilateral.
-    :return: Transformation matrix, width, and height.
+    :param points: List of 4 points.
+    :return:
     """
-    # Calculate the width and height of the region defined by the points
-    width_a = np.sqrt(((points[2][0] - points[3][0]) ** 2) + ((points[2][1] - points[3][1]) ** 2))
-    width_b = np.sqrt(((points[1][0] - points[0][0]) ** 2) + ((points[1][1] - points[0][1]) ** 2))
-    width = max(int(width_a), int(width_b))
-
-    height_a = np.sqrt(((points[1][0] - points[2][0]) ** 2) + ((points[1][1] - points[2][1]) ** 2))
-    height_b = np.sqrt(((points[0][0] - points[3][0]) ** 2) + ((points[0][1] - points[3][1]) ** 2))
-    height = max(int(height_a), int(height_b))
-
     # Define points for the destination
-    dst_points = np.float32([[0, 0], [width-1, 0], [width-1, height-1], [0, height-1]])
-
-    print("points", points)
+    dst_points = np.float32([[0, 0], [width, 0], [width, height], [0, height]])
 
     # Get the transformation matrix
-    M = cv2.getPerspectiveTransform(np.float32(points), dst_points)
-
-    return M, width, height
+    return cv2.getPerspectiveTransform(np.float32(points), dst_points)
 
 
-def transform_image(image: np.ndarray, matrix: np.ndarray, width: int, height: int) -> np.ndarray:
+def transform_image(image: np.ndarray, matrix: np.ndarray) -> np.ndarray:
     """
     Transform the image using the given matrix.
-    :param height: Height of the image
-    :param width: Width of the image
     :param image: np.ndarray
     :param matrix: np.ndarray
     :return: Transformed image as np.ndarray
@@ -86,12 +82,9 @@ def transform_image(image: np.ndarray, matrix: np.ndarray, width: int, height: i
 
 
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    ex = VideoApp()
-
-    p = get_calibration_points(ex)
+    img = cv2.imread('test/test.jpg')
+    p = get_calibration_points(img)
     m = get_transformation_matrix(p)
-    img = transform_image(cv2.imread('test/test.jpg'), m)
+    img = transform_image(img, m)
 
     cv2.imwrite('test/adjusted.jpg', img)
-    sys.exit(app.exec_())

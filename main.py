@@ -10,17 +10,11 @@ from fill import get_fill_overlay
 from utils import get_frame
 
 
-def get_calibration_cache(ex: VideoApp):
+def get_calibration_cache(image: np.ndarray):
     if os.path.exists('calibration_cache.npy'):
         return np.load('calibration_cache.npy')
 
-    while True:
-        points = get_calibration_points(ex)
-        if len(points) == 4:
-            break
-        else:
-            print('Please select 4 points.')
-
+    points = get_calibration_points(image)
     matrix = get_transformation_matrix(points)
 
     np.save('calibration_cache.npy', matrix)
@@ -32,9 +26,10 @@ def main():
     app = QApplication(sys.argv)
     ex = VideoApp()
 
-    matrix = get_calibration_cache(ex)
+    frames = get_frame(cam=1)
+    matrix = get_calibration_cache(next(frames))
 
-    for frame in get_frame(cam=1):
+    for frame in frames:
         frame = transform_image(frame, matrix)
         overlay = get_fill_overlay(frame)
         ex.display_frame(overlay)

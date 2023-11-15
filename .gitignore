@@ -160,3 +160,4 @@ cython_debug/
 .idea/
 
 calibration_cache.npy
+calibration_cache_size.npy
