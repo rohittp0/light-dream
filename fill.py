@@ -2,7 +2,6 @@ import cv2
 import numpy as np
 
 from enhance import whiteboard_enhance
-from utils import show
 
 
 def get_average_color(contour, image):
@@ -75,9 +74,9 @@ def get_fill_overlay(image: np.ndarray) -> np.ndarray:
     :param image: Image to process
     :return: The overlay as a np.ndarray
     """
-    image = whiteboard_enhance(image)
+    enhanced = whiteboard_enhance(image)
     thresh = preprocess_image(image)
-    overlay = find_and_fill_contours(thresh, image)
+    overlay = find_and_fill_contours(thresh, enhanced)
 
     return overlay
 

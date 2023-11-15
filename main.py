@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QApplication
 from app import VideoApp
 from calibrate import get_calibration_points, get_transformation_matrix, transform_image
 from fill import get_fill_overlay
-from utils import get_frame
+from utils import get_frame, show
 
 
 def get_calibration_cache(image: np.ndarray):
@@ -31,11 +31,16 @@ def main():
 
     matrix = get_calibration_cache(next(frames))
 
+    overlay = None
+
     for frame in frames:
+        if overlay is not None:
+            ex.display_frame(overlay)
+
         frame = transform_image(frame, matrix)
+
         overlay = get_fill_overlay(frame)
         ex.display_frame(overlay)
-        sleep(1)
 
     sys.exit(app.exec_())
 
