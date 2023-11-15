@@ -30,6 +30,12 @@ def get_calibration_points() -> List[Tuple[int, int]]:
     image = np.zeros((screen_height, screen_width, 3), dtype=np.uint8)
     image[:] = (0, 255, 0)  # (B, G, R)
 
+    # Create a named window
+    cv2.namedWindow('Image', cv2.WINDOW_NORMAL)
+
+    # Set the window to full screen
+    cv2.setWindowProperty('Image', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
     # Display the image in an OpenCV window
     cv2.imshow('Image', image)
     cv2.waitKey(1000)
