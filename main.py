@@ -2,10 +2,11 @@ import os
 
 import cv2
 import numpy as np
+import pygame
 
 from calibrate import get_calibration_points, get_transformation_matrix, transform_image
 from fill import get_fill_overlay
-from utils import get_frame, show
+from utils import get_frame, show, draw
 
 
 def get_calibration_cache():
@@ -29,15 +30,20 @@ def get_calibration_cache():
 
 def main():
     matrix = get_calibration_cache()
-    cv2.namedWindow("image", cv2.WND_PROP_FULLSCREEN)
-    cv2.setWindowProperty("image", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_NORMAL)
+    pygame.init()
+    infoObject = pygame.display.Info()
+    screen = pygame.display.set_mode((infoObject.current_w, infoObject.current_h), pygame.FULLSCREEN)
 
     for frame in get_frame(cam=1):
         frame = transform_image(frame, matrix)
         overlay = get_fill_overlay(frame)
+        draw(screen, overlay)
 
-        cv2.imshow('image', overlay)
-        cv2.waitKey(2)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+                break
+
+    pygame.quit()
 
 
 if __name__ == '__main__':
