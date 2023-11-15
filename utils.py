@@ -1,7 +1,6 @@
 import platform
 
 import cv2
-import pygame
 
 
 def get_frame(cam=0):
@@ -72,11 +71,3 @@ def draw_hierarchy(image, contours, hierarchy):
     cv2.imshow('Hierarchy', hierarchy_image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-
-
-def draw(screen, image):
-    frame_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    frame_pygame = pygame.image.frombuffer(frame_rgb.tostring(), frame_rgb.shape[1::-1], "RGB")
-    # Display image
-    screen.blit(frame_pygame, (0, 0))
-    pygame.display.flip()
