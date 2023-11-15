@@ -3,6 +3,8 @@ from typing import List, Tuple
 import cv2
 import numpy as np
 
+width, height = 1200, 800  # Example dimensions, adjust as necessary
+
 
 def show_scaled_image(image, zoom_level=1):
     # Scale the image
@@ -46,7 +48,7 @@ def get_calibration_points(image: np.ndarray) -> List[Tuple[int, int]]:
 
         show_scaled_image(image, zoom_level)
 
-    cv2.namedWindow('Image')
+    cv2.namedWindow("Image")
     cv2.setMouseCallback('Image', get_points)
 
     show_scaled_image(image)
@@ -62,7 +64,6 @@ def get_transformation_matrix(points: List[Tuple[int, int]]) -> np.ndarray:
     :return:
     """
     # Define points for the destination
-    width, height = 800, 600  # Example dimensions, adjust as necessary
     dst_points = np.float32([[0, 0], [width, 0], [width, height], [0, height]])
 
     # Get the transformation matrix
@@ -76,7 +77,6 @@ def transform_image(image: np.ndarray, matrix: np.ndarray) -> np.ndarray:
     :param matrix: np.ndarray
     :return: Transformed image as np.ndarray
     """
-    width, height = 800, 600  # Example dimensions, adjust as necessary
     return cv2.warpPerspective(image, matrix, (width, height))
 
 
