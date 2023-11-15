@@ -1,12 +1,12 @@
+import sys
 from typing import List, Tuple
 
-import time
 import cv2
 import numpy as np
-from screeninfo import get_monitors
-from utils import get_frame
+from PyQt5.QtWidgets import QApplication
 
-width, height = 1200, 800  # Example dimensions, adjust as necessary
+from app import VideoApp
+from utils import get_frame
 
 
 def show_scaled_image(image, zoom_level=1):
@@ -17,34 +17,20 @@ def show_scaled_image(image, zoom_level=1):
     cv2.imshow('Image', image)
 
 
-def get_calibration_points() -> List[Tuple[int, int]]:
+def get_calibration_points(window: VideoApp) -> List[Tuple[int, int]]:
     """
     Get the calibration points from the image.
-    :param image: np.ndarray
+    :param window: VideoApp
     :return: List of 4 points.
     """
-    monitor = get_monitors()[0]
-    screen_width, screen_height = monitor.width, monitor.height
-
     # Create a green image of screen size
-    image = np.zeros((screen_height, screen_width, 3), dtype=np.uint8)
+    image = np.zeros((1200, 800, 3), dtype=np.uint8)
     image[:] = (0, 255, 0)  # (B, G, R)
 
-    # Create a named window
-    cv2.namedWindow('Image', cv2.WINDOW_NORMAL)
-
-    # Set the window to full screen
-    cv2.setWindowProperty('Image', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-
     # Display the image in an OpenCV window
-    cv2.imshow('Image', image)
-    cv2.waitKey(1000)
+    window.display_frame(image)
     image = next(get_frame(cam=1))
-    cv2.imwrite('test/test.jpg', image)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
 
-    image = cv2.imread('test/test.jpg')
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
     lower_green = np.array([35, 100, 100])
@@ -58,29 +44,40 @@ def get_calibration_points() -> List[Tuple[int, int]]:
     epsilon = 0.02 * cv2.arcLength(shape_contour, True)
     approx = cv2.approxPolyDP(shape_contour, epsilon, True)
 
-    points = [tuple(pt[0]) for pt in approx]
-    temp1 = points[1]
-    points[1] = points[3]
-    points[3] = temp1
-    return points
+    return [tuple(point[0]) for point in approx]
 
 
-def get_transformation_matrix(points: List[Tuple[int, int]]) -> np.ndarray:
+def get_transformation_matrix(points: List[Tuple[int, int]]) -> Tuple[np.ndarray, int, int]:
     """
     Get the transformation matrix for the given points.
-    :param points: List of 4 points.
-    :return:
+    :param points: List of 4 points forming a quadrilateral.
+    :return: Transformation matrix, width, and height.
     """
+    # Calculate the width and height of the region defined by the points
+    width_a = np.sqrt(((points[2][0] - points[3][0]) ** 2) + ((points[2][1] - points[3][1]) ** 2))
+    width_b = np.sqrt(((points[1][0] - points[0][0]) ** 2) + ((points[1][1] - points[0][1]) ** 2))
+    width = max(int(width_a), int(width_b))
+
+    height_a = np.sqrt(((points[1][0] - points[2][0]) ** 2) + ((points[1][1] - points[2][1]) ** 2))
+    height_b = np.sqrt(((points[0][0] - points[3][0]) ** 2) + ((points[0][1] - points[3][1]) ** 2))
+    height = max(int(height_a), int(height_b))
+
     # Define points for the destination
-    dst_points = np.float32([[0, 0], [width, 0], [width, height], [0, height]])
+    dst_points = np.float32([[0, 0], [width-1, 0], [width-1, height-1], [0, height-1]])
+
+    print("points", points)
 
     # Get the transformation matrix
-    return cv2.getPerspectiveTransform(np.float32(points), dst_points)
+    M = cv2.getPerspectiveTransform(np.float32(points), dst_points)
+
+    return M, width, height
 
 
-def transform_image(image: np.ndarray, matrix: np.ndarray) -> np.ndarray:
+def transform_image(image: np.ndarray, matrix: np.ndarray, width: int, height: int) -> np.ndarray:
     """
     Transform the image using the given matrix.
+    :param height: Height of the image
+    :param width: Width of the image
     :param image: np.ndarray
     :param matrix: np.ndarray
     :return: Transformed image as np.ndarray
@@ -89,10 +86,12 @@ def transform_image(image: np.ndarray, matrix: np.ndarray) -> np.ndarray:
 
 
 if __name__ == '__main__':
-    img = cv2.imread('test/test.jpg')
-    p = get_calibration_points()
-    print(p)
+    app = QApplication(sys.argv)
+    ex = VideoApp()
+
+    p = get_calibration_points(ex)
     m = get_transformation_matrix(p)
-    img = transform_image(img, m)
+    img = transform_image(cv2.imread('test/test.jpg'), m)
 
     cv2.imwrite('test/adjusted.jpg', img)
+    sys.exit(app.exec_())
