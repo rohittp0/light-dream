@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 
+from enhance import whiteboard_enhance
 from utils import show
 
 
@@ -27,6 +28,7 @@ def closest_color(rgb_color):
 
 
 def preprocess_image(image):
+    image = whiteboard_enhance(image)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
     thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
