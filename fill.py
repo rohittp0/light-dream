@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 
+from utils import show
+
 
 def get_average_color(contour, image):
     mask = np.zeros(image.shape[:2], dtype=np.uint8)
@@ -32,15 +34,37 @@ def preprocess_image(image):
     return thresh
 
 
+def is_contour_closed(contour, closed_tolerance=0.0002):
+    # Calculate the arc length of the contour
+    closed_perimeter = cv2.arcLength(contour, True)
+    open_perimeter = cv2.arcLength(contour, False)
+
+    # If the closed perimeter is not significantly larger than the open perimeter,
+    # it suggests the contour is closed.
+    return (open_perimeter - closed_perimeter) / open_perimeter < closed_tolerance
+
+
 def find_and_fill_contours(thresh, image):
-    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    kernel = np.ones((3, 3), np.uint8)
+    closing = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+
+    # Here we retrieve the hierarchy information along with the contours
+    contours, hierarchy = cv2.findContours(closing, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
     overlay = np.zeros_like(image)
-    for contour in contours:
-        if cv2.contourArea(contour) < 100:
+
+    # Iterate through each contour and its corresponding hierarchy element
+    for i, contour in enumerate(contours):
+        if hierarchy[0][i][2] < 0 and hierarchy[0][i][3] < 0:
             continue
+
+        area = cv2.contourArea(contour)
+        if area > 10000 or area < 100:
+            continue
+
         average_color = get_average_color(contour, image)
         color = closest_color(average_color)
         cv2.drawContours(overlay, [contour], -1, color, -1)
+
     return overlay
 
 
