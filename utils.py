@@ -1,9 +1,10 @@
 import platform
 
 import cv2
+import numpy as np
 
 
-def get_frame(cam=0):
+def get_frame(ex, cam=0):
     """
     Reads a frame from the camera using OpenCV
     :return: Frame
@@ -15,8 +16,13 @@ def get_frame(cam=0):
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 
+    white = np.zeros((480, 640, 3), dtype=np.uint8)
+    white.fill(255)
+
     while True:
         # Read a frame from the camera
+        ex.display_frame(white)
+        cap.read()
         ret, frame = cap.read()
 
         if not ret:

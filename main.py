@@ -1,5 +1,6 @@
 import os
 import sys
+from time import sleep
 
 import numpy as np
 from PyQt5.QtWidgets import QApplication
@@ -26,13 +27,15 @@ def main():
     app = QApplication(sys.argv)
     ex = VideoApp()
 
-    frames = get_frame(cam=1)
+    frames = get_frame(ex, cam=1)
+
     matrix = get_calibration_cache(next(frames))
 
     for frame in frames:
         frame = transform_image(frame, matrix)
         overlay = get_fill_overlay(frame)
         ex.display_frame(overlay)
+        sleep(1)
 
     sys.exit(app.exec_())
 

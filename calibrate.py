@@ -48,8 +48,7 @@ def get_calibration_points(image: np.ndarray) -> List[Tuple[int, int]]:
 
         show_scaled_image(image, zoom_level)
 
-    cv2.namedWindow("Image", cv2.WND_PROP_FULLSCREEN)
-    cv2.setWindowProperty("Image", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_NORMAL)
+    cv2.namedWindow("Image")
     cv2.setMouseCallback('Image', get_points)
 
     show_scaled_image(image)
