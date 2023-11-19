@@ -1,6 +1,5 @@
 from typing import List, Tuple
 
-import time
 import cv2
 import numpy as np
 from screeninfo import get_monitors
