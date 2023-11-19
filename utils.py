@@ -1,4 +1,5 @@
 import platform
+from time import sleep
 
 import cv2
 import numpy as np
@@ -37,7 +38,7 @@ def get_frame(ex, cam=0):
     """
     mode = cv2.CAP_DSHOW if platform.system() == "Windows" else cv2.CAP_GSTREAMER
 
-    cap = cv2.VideoCapture(cam, mode)
+    cap = cv2.VideoCapture(0, mode)
 
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
@@ -47,16 +48,14 @@ def get_frame(ex, cam=0):
     last_frame = None
 
     while True:
-        ret, frame = cap.read()
+        ex.display_frame(white)
+        sleep(0.2)
 
+        ret, frame = cap.read()
         if not ret:
             break
 
-        if check_for_change(last_frame, frame):
-            ex.display_frame(white)
-            last_frame = cap.read()[1]
-
-        yield last_frame
+        yield frame
 
 
 def show(*images):

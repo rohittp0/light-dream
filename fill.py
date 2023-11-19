@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 
+from utils import show
+
 
 def remove_contour(contours_, hierarchy_, min_area, max_area, image):
     exclude = set()
@@ -15,7 +17,6 @@ def remove_contour(contours_, hierarchy_, min_area, max_area, image):
         else:
             areas.append(area)
 
-
     sorted_areas = sorted(range(len(areas)), key=lambda k: areas[k], reverse=True)
 
     start = 0
@@ -27,18 +28,16 @@ def remove_contour(contours_, hierarchy_, min_area, max_area, image):
     for j in range(start, len(contours)):
         contour_map[j] = j - len(exclude)
 
-
     for i in range(0, len(contours)):
         next = hierarchy[0][i][0]
         while next in exclude:
             next = hierarchy[0][next][0]
-        hierarchy[0][i][0] =  contour_map[next]
+        hierarchy[0][i][0] = contour_map[next]
 
         prev = hierarchy[0][i][1]
         while prev in exclude:
             prev = hierarchy[0][prev][1]
-        hierarchy[0][i][1] =  contour_map[prev]
-
+        hierarchy[0][i][1] = contour_map[prev]
 
         if hierarchy[0][i][2] in exclude:
             hierarchy[0][i][2] = -1
@@ -50,12 +49,11 @@ def remove_contour(contours_, hierarchy_, min_area, max_area, image):
         else:
             hierarchy[0][i][3] = contour_map[hierarchy[0][i][3]]
 
-    filtered_contour  = [value for index, value in enumerate(contours) if index not in exclude]
+    filtered_contour = [value for index, value in enumerate(contours) if index not in exclude]
     rearranged_contour = [filtered_contour[i] for i in sorted_areas]
 
     filtered_hierarchy = [[value for index, value in enumerate(hierarchy[0]) if index not in exclude]]
     rearranged_hierarchy = [[filtered_hierarchy[0][i] for i in sorted_areas]]
-
 
     return rearranged_contour, rearranged_hierarchy
 
@@ -77,6 +75,7 @@ def sort_contours_into_levels(contours, hierarchy):
         levels[level].append(i)
 
     return levels
+
 
 def get_average_color(contour, hierarchy, image):
     mask = np.zeros(image.shape[:2], dtype=np.uint8)
@@ -103,7 +102,8 @@ def closest_color(rgb_color):
 def preprocess_image(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    thresh = cv2.threshold(blurred, 10, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+    thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                   cv2.THRESH_BINARY_INV, 11, 2)
 
     return thresh
 
@@ -130,13 +130,13 @@ def find_and_fill_contours(thresh, image):
 
     # Iterate through each contour and its corresponding hierarchy element
     for i, contour in enumerate(contours):
-        average_color = get_average_color(contour,hierarchy, image)
+        average_color = get_average_color(contour, hierarchy, image)
         color = closest_color(average_color)
         # ov = np.zeros_like(image)
         # cv2.drawContours(ov, [contour], -1, color, -1)
         # cv2.imwrite('test/contour/cont' + str(i) + '.jpg', ov)
 
-        cv2.drawContours(overlay, [contour], -1,  color, -1)
+        cv2.drawContours(overlay, [contour], -1, color, -1)
 
     return overlay
 
@@ -147,9 +147,8 @@ def get_fill_overlay(image: np.ndarray) -> np.ndarray:
     :param image: Image to process
     :return: The overlay as a np.ndarray
     """
-    enhanced = whiteboard_enhance(image)
     thresh = preprocess_image(image)
-    overlay = find_and_fill_contours(thresh, enhanced)
+    overlay = find_and_fill_contours(thresh, image)
 
     return overlay
 
