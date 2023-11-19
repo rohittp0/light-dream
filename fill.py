@@ -127,9 +127,9 @@ def find_and_fill_contours(thresh, image):
 
     # Here we retrieve the hierarchy information along with the contours
     contours, hierarchy = cv2.findContours(closing, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    contours, hierarchy = remove_contour(contours, hierarchy, 500, 2000000, image)
+    contours, hierarchy = remove_contour(contours, hierarchy, 100, 2000000, image)
 
-    if abs(no_cont - len(contours) ) > max_delta:
+    if abs(no_cont - len(contours) ) > max_delta and no_cont != 0:
         return np.zeros_like(image)
 
     no_cont = len(contours)
@@ -151,9 +151,9 @@ def find_and_fill_contours(thresh, image):
             average_color = get_average_color(i, contours, hierarchy, image)
             color = closest_color(average_color)
 
-            # ov = np.zeros_like(image)
-            # cv2.drawContours(ov, [contour], -1, color, -1)
-            # cv2.imwrite('test/contour/cont' + str(i) + '.jpg', ov)
+            ov = np.zeros_like(image)
+            cv2.drawContours(ov, [contour], -1, color, -1)
+            cv2.imwrite('test/contour/cont' + str(i) + '.jpg', ov)
 
             cv2.drawContours(overlay, [contour], -1, color, -1)
 
