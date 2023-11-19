@@ -101,11 +101,10 @@ def closest_color(rgb_color):
 
 
 def preprocess_image(image):
-    # image = whiteboard_enhance(image)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                                   cv2.THRESH_BINARY_INV, 11, 2)
+    thresh = cv2.threshold(blurred, 10, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+
     return thresh
 
 
@@ -148,8 +147,10 @@ def get_fill_overlay(image: np.ndarray) -> np.ndarray:
     :param image: Image to process
     :return: The overlay as a np.ndarray
     """
+    enhanced = whiteboard_enhance(image)
     thresh = preprocess_image(image)
-    overlay = find_and_fill_contours(thresh, image)
+    overlay = find_and_fill_contours(thresh, enhanced)
+
     return overlay
 
 

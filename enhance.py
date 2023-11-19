@@ -151,7 +151,7 @@ def whiteboard_enhance(img):
 
     # parameters for enhancing functions
     dog_k_size, dog_sigma_1, dog_sigma_2 = 15, 100, 0
-    cs_black_per, cs_white_per = 0.05, 99.5
+    cs_black_per, cs_white_per = 3, 95
 
     # Difference of Gaussian (DoG)
     dog_img = dog(img, dog_k_size, dog_sigma_1, dog_sigma_2)

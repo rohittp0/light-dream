@@ -1,9 +1,36 @@
 import platform
 
 import cv2
+import numpy as np
 
 
-def get_frame(cam=0):
+def check_for_change(frame1, frame2, threshold=30, percentage=0.05):
+    """
+    Checks if two frames are different based on a threshold.
+    :param frame1: First frame as numpy array
+    :param frame2: Second frame as numpy array
+    :param threshold: The threshold value for pixel intensity differences
+    :param percentage: The percentage of pixels that need to exceed the threshold
+    :return: True if the frames are different, False otherwise
+    """
+    if frame1 is None or frame2 is None:
+        return True
+
+    # Calculate the absolute difference between the frames
+    delta = cv2.absdiff(frame1, frame2)
+    # Threshold the delta
+    thresholded_delta = cv2.threshold(delta, threshold, 255, cv2.THRESH_BINARY)[1]
+
+    # Find the percentage of pixels that are different
+    nonzero_count = np.count_nonzero(thresholded_delta)
+    total_count = frame1.shape[0] * frame1.shape[1] * frame1.shape[2]
+    changed_percentage = nonzero_count / total_count
+
+    # If the percentage of changed pixels is greater than the percentage threshold, return True
+    return changed_percentage > percentage
+
+
+def get_frame(ex, cam=0):
     """
     Reads a frame from the camera using OpenCV
     :return: Frame
@@ -15,14 +42,21 @@ def get_frame(cam=0):
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 
+    white = np.zeros((480, 640, 3), dtype=np.uint8)
+
+    last_frame = None
+
     while True:
-        # Read a frame from the camera
         ret, frame = cap.read()
 
         if not ret:
             break
 
-        yield frame
+        if check_for_change(last_frame, frame):
+            ex.display_frame(white)
+            last_frame = cap.read()[1]
+
+        yield last_frame
 
 
 def show(*images):
