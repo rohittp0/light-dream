@@ -8,7 +8,7 @@ from fill import preprocess_image, find_and_fill_contours
 # cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 # ret, frame = cap.read()
 
-img = cv2.imread('test/cont_crop.jpg')
+img = cv2.imread('test/test_color.jpeg')
 
 
 def get_fill_overlay(image: np.ndarray) -> np.ndarray:
