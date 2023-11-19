@@ -116,13 +116,23 @@ def is_contour_closed(contour, closed_tolerance=0.0002):
     return (open_perimeter - closed_perimeter) / open_perimeter < closed_tolerance
 
 
+no_cont = 0
+max_delta = 8
+
+
 def find_and_fill_contours(thresh, image):
+    global no_cont
     kernel = np.ones((4, 4), np.uint8)
     closing = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
 
     # Here we retrieve the hierarchy information along with the contours
     contours, hierarchy = cv2.findContours(closing, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     contours, hierarchy = remove_contour(contours, hierarchy, 500, 2000000, image)
+
+    if abs(no_cont - len(contours) ) > max_delta:
+        return np.zeros_like(image)
+
+    no_cont = len(contours)
 
     # Sort the contours into levels
     levels = sort_contours_into_levels(contours, hierarchy)
