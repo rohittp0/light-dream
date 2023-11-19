@@ -17,7 +17,6 @@ def get_calibration_cache():
         return np.load('calibration_cache.npy')
 
     while True:
-        frame = next(get_frame(cam=1))
         points = get_calibration_points()
         if len(points) == 4:
             break

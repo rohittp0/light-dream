@@ -3,14 +3,14 @@ import platform
 import cv2
 
 
-def get_frame(cam=0):
+def get_frame(cam=1):
     """
     Reads a frame from the camera using OpenCV
     :return: Frame
     """
     mode = cv2.CAP_DSHOW if platform.system() == "Windows" else cv2.CAP_GSTREAMER
 
-    cap = cv2.VideoCapture(cam, mode)
+    cap = cv2.VideoCapture(0, mode)
 
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
