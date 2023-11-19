@@ -45,16 +45,18 @@ def get_frame(ex, cam=0):
 
     white = np.zeros((480, 640, 3), dtype=np.uint8)
 
-    last_frame = None
-
     ex.display_frame(white)
     sleep(1)
 
     while True:
         ex.display_frame(white)
-        sleep(0.3)
+
+        for i in range(5):
+            cap.read()
+
         ret, frame = cap.read()
         if not ret:
+            print("Done")
             break
 
         yield frame

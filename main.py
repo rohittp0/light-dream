@@ -1,6 +1,5 @@
 import os
 import sys
-from time import sleep
 
 import numpy as np
 from PyQt5.QtWidgets import QApplication
@@ -8,7 +7,7 @@ from PyQt5.QtWidgets import QApplication
 from app import VideoApp
 from calibrate import get_calibration_points, get_transformation_matrix, transform_image
 from fill import get_fill_overlay
-from utils import get_frame, show
+from utils import get_frame
 
 
 def get_calibration_cache(image: np.ndarray):

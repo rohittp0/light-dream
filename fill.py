@@ -9,16 +9,11 @@ def remove_contour(contours_, hierarchy_, min_area, max_area, image):
     exclude = set()
     contours = list(contours_)
     hierarchy = list(hierarchy_)
-    areas = []
     contour_map = {-1: -1}
     for i, contour in enumerate(contours):
         area = cv2.contourArea(contour)
         if area > max_area or area < min_area:
             exclude.add(i)
-        else:
-            areas.append(area)
-
-    sorted_areas = sorted(range(len(areas)), key=lambda k: areas[k], reverse=True)
 
     start = 0
     for i, ex in enumerate(exclude):
@@ -51,12 +46,9 @@ def remove_contour(contours_, hierarchy_, min_area, max_area, image):
             hierarchy[0][i][3] = contour_map[hierarchy[0][i][3]]
 
     filtered_contour = [value for index, value in enumerate(contours) if index not in exclude]
-    rearranged_contour = [filtered_contour[i] for i in sorted_areas]
-
     filtered_hierarchy = [[value for index, value in enumerate(hierarchy[0]) if index not in exclude]]
-    rearranged_hierarchy = [[filtered_hierarchy[0][i] for i in sorted_areas]]
 
-    return rearranged_contour, rearranged_hierarchy
+    return filtered_contour, filtered_hierarchy
 
 
 def sort_contours_into_levels(contours, hierarchy):
@@ -78,15 +70,51 @@ def sort_contours_into_levels(contours, hierarchy):
     return levels
 
 
-def get_average_color(contour, hierarchy, image):
+def saturate(mean_val):
+    # 'mean_val' is a tuple with the BGR values
+    bgr_mean_color = np.array(mean_val[:3], dtype=np.uint8)
+
+    # Scale the BGR values, excluding the white and black colors
+    saturation_factor = 1.5  # How much to scale the BGR values by
+    if not all(bgr_mean_color == 0) and not all(bgr_mean_color == 255):
+        max_channel = bgr_mean_color.max()
+        # Increase the color's intensity while keeping the same ratio
+        saturated_bgr_color = bgr_mean_color * saturation_factor
+        # Make sure we don't go past 255 in any channel
+        saturated_bgr_color = np.clip(saturated_bgr_color, 0, 255)
+        # Keep the highest value at 255 if it was the highest value before scaling
+        if max_channel == bgr_mean_color.max():
+            saturated_bgr_color = saturated_bgr_color / saturated_bgr_color.max() * 255
+    else:
+        # For white or black, we don't change the color
+        saturated_bgr_color = bgr_mean_color
+
+    # Convert the color back to a tuple for use with OpenCV functions
+    return saturated_bgr_color.astype(np.uint8).tolist()
+
+
+def get_average_color(idx, contours, hierarchy, image):
     mask = np.zeros(image.shape[:2], dtype=np.uint8)
-    cv2.drawContours(mask, [contour], -1, 255, -1)
-    mean = cv2.mean(image, mask=mask)
-    return mean[0:3]
+    cv2.drawContours(mask, [contours[idx]], -1, 255, -1)
+    child = hierarchy[0][idx][2]
+    while child != -1:
+        cv2.drawContours(mask, [contours[child]], -1, 0, -1)
+        child = hierarchy[0][child][0]
 
+    # Convert the image to the grayscale
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-def closest_color(rgb_color):
-    return rgb_color
+    # Create a mask for non-white (or near-white) pixels
+    near_white_threshold = 240  # Define near-white threshold
+    non_white_mask = cv2.inRange(gray_image, 0, near_white_threshold)
+
+    # Combine the original mask with the non-white mask
+    combined_mask = cv2.bitwise_and(mask, non_white_mask)
+
+    # Calculate the mean color in the masked area, excluding near-white pixels
+    mean_val = cv2.mean(image, mask=combined_mask)
+
+    return saturate(mean_val)
 
 
 def preprocess_image(image):
@@ -112,20 +140,27 @@ def find_and_fill_contours(thresh, image):
     closing = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
 
     # Here we retrieve the hierarchy information along with the contours
-    contours, hierarchy = cv2.findContours(closing, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv2.findContours(closing, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     contours, hierarchy = remove_contour(contours, hierarchy, 100, 2000000, image)
+
+    # Sort the contours into levels
+    levels = sort_contours_into_levels(contours, hierarchy)
 
     overlay = np.zeros_like(image)
 
     # Iterate through each contour and its corresponding hierarchy element
-    for i, contour in enumerate(contours):
-        average_color = get_average_color(contour, hierarchy, image)
-        color = closest_color(average_color)
-        # ov = np.zeros_like(image)
-        # cv2.drawContours(ov, [contour], -1, color, -1)
-        # cv2.imwrite('test/contour/cont' + str(i) + '.jpg', ov)
+    for level in levels:
+        for i in level:
+            contour = contours[i]
 
-        cv2.drawContours(overlay, [contour], -1, color, -1)
+            if not is_contour_closed(contour):
+                continue
+
+            color = get_average_color(i, contours, hierarchy, image)
+
+            ov = np.zeros_like(image)
+            cv2.drawContours(ov, [contour], -1, color, -1)
+            cv2.drawContours(overlay, [contour], -1, color, -1)
 
     return overlay
 
@@ -136,10 +171,11 @@ def get_fill_overlay(image: np.ndarray) -> np.ndarray:
     :param image: Image to process
     :return: The overlay as a np.ndarray
     """
-    enhanced = whiteboard_enhance(image)
-    thresh = preprocess_image(enhanced)
+    image = whiteboard_enhance(image)
+    thresh = preprocess_image(image)
     overlay = find_and_fill_contours(thresh, image)
 
+    show(overlay, image, thresh)
     return overlay
 
 
