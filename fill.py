@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 
+from enhance import whiteboard_enhance
 from utils import show
 
 
@@ -85,25 +86,13 @@ def get_average_color(contour, hierarchy, image):
 
 
 def closest_color(rgb_color):
-    color_mappings = {
-        'red': (0, 0, 255),
-        'green': (0, 255, 0),
-        'blue': (255, 0, 0),
-        'black': (0, 0, 0)
-    }
-    colors = np.array(list(color_mappings.values()))
-    color_diffs = colors - np.array(rgb_color)
-    dist = np.sqrt(np.sum(color_diffs ** 2, axis=1))
-    index_of_smallest = np.argmin(dist)
-    closest_color_name = list(color_mappings.keys())[index_of_smallest]
-    return color_mappings[closest_color_name]
+    return rgb_color
 
 
 def preprocess_image(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                                   cv2.THRESH_BINARY_INV, 11, 2)
+    thresh = cv2.Canny(blurred, 100, 200)
 
     return thresh
 
@@ -147,7 +136,8 @@ def get_fill_overlay(image: np.ndarray) -> np.ndarray:
     :param image: Image to process
     :return: The overlay as a np.ndarray
     """
-    thresh = preprocess_image(image)
+    enhanced = whiteboard_enhance(image)
+    thresh = preprocess_image(enhanced)
     overlay = find_and_fill_contours(thresh, image)
 
     return overlay

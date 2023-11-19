@@ -47,10 +47,12 @@ def get_frame(ex, cam=0):
 
     last_frame = None
 
+    ex.display_frame(white)
+    sleep(1)
+
     while True:
         ex.display_frame(white)
-        sleep(0.2)
-
+        sleep(0.3)
         ret, frame = cap.read()
         if not ret:
             break
