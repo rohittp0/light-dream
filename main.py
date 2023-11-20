@@ -1,28 +1,22 @@
 import os
 import sys
+from time import sleep
 
-import cv2
+import PyQt5
 import numpy as np
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPixmap, QImage
-from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel
+from PyQt5.QtWidgets import QApplication
 
+from app import VideoApp
 from calibrate import get_calibration_points, get_transformation_matrix, transform_image
 from fill import get_fill_overlay
-from utils import get_frame
+from utils import get_frame, check_for_change
 
 
-def get_calibration_cache():
+def get_calibration_cache(image: np.ndarray):
     if os.path.exists('calibration_cache.npy'):
         return np.load('calibration_cache.npy')
 
-    while True:
-        points = get_calibration_points()
-        if len(points) == 4:
-            break
-        else:
-            print('Please select 4 points.')
-
+    points = get_calibration_points(image)
     matrix = get_transformation_matrix(points)
 
     np.save('calibration_cache.npy', matrix)
@@ -30,48 +24,41 @@ def get_calibration_cache():
     return matrix
 
 
-class VideoApp(QMainWindow):
-    def __init__(self, matrix):
-        super().__init__()
-        self.matrix = matrix
-        self.setWindowTitle('Video Fullscreen PyQt')
-        self.showFullScreen()
-        self.label = QLabel(self)
-        self.label.setAlignment(Qt.AlignCenter)  # Align the image to center
-        self.label.setScaledContents(True)
-        self.setCentralWidget(self.label)
-
-        # Move the window to the second screen if available
-        screens = QApplication.screens()
-        if len(screens) > 1:
-            # Assuming the second monitor is to the right of the primary
-            second_screen = screens[1]
-            self.move(second_screen.geometry().x(), second_screen.geometry().y())
-            self.showFullScreen()
-
-    def display_frame(self, frame):
-        # Convert the frame format from OpenCV to QImage
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        h, w, ch = frame.shape
-        bytes_per_line = ch * w
-        qt_image = QImage(frame.data, w, h, bytes_per_line, QImage.Format_RGB888)
-        self.label.setPixmap(QPixmap.fromImage(qt_image))
-
-    def closeEvent(self, event):
-        self.close()
-
 
 def main():
-    matrix = get_calibration_cache()
-
     app = QApplication(sys.argv)
-    ex = VideoApp(matrix)
+    ex = VideoApp()
 
-    for frame in get_frame(cam=1):
+    frames = get_frame(ex, cam=1)
+
+    matrix = get_calibration_cache(next(frames))
+
+    last_frame = next(frames)
+    change = True
+    white = np.zeros((480, 640, 3), dtype=np.uint8)
+
+    for frame in frames:
+
+        if check_for_change(frame, last_frame):
+            change = True
+            last_frame = frame
+            continue
+
+        if not change:
+            continue
+
+        ex.display_frame(white)
+        frame = next(frames)
+        frame = next(frames)
+
+        change = False
         frame = transform_image(frame, matrix)
         overlay = get_fill_overlay(frame)
         ex.display_frame(overlay)
+        last_frame = next(frames)
+
         QApplication.processEvents()  # Update the GUI and check for user interactions
+
 
     sys.exit(app.exec_())
 
